@@ -5,7 +5,7 @@
 # ============================================
 FROM php:8.2-apache
 
-LABEL maintainer="your@email.com"
+LABEL maintainer="septa.git@gmail.com"
 LABEL description="PHP CRUD App with PostgreSQL on Railway"
 
 # Install system dependencies
