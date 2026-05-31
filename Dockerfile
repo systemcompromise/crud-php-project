@@ -25,6 +25,10 @@ RUN docker-php-ext-install \
     zip \
     opcache
 
+# Fix MPM conflict: php:8.2-apache uses mpm_prefork, disable others explicitly
+RUN a2dismod mpm_event mpm_worker 2>/dev/null || true \
+    && a2enmod mpm_prefork
+
 # Enable Apache modules
 RUN a2enmod rewrite headers ssl
 
