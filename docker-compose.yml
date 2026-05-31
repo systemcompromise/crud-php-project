@@ -1,5 +1,10 @@
 version: '3.8'
 
+# ============================================
+# docker-compose.yml — LOCAL DEVELOPMENT ONLY
+# Untuk production, gunakan Railway (Dockerfile)
+# ============================================
+
 services:
   app:
     build:
@@ -17,6 +22,7 @@ services:
       - DB_USER=postgres
       - DB_PASS=secret
       - APP_ENV=development
+      - APP_URL=http://localhost:8080
     depends_on:
       db:
         condition: service_healthy

@@ -9,7 +9,7 @@ class Content {
     }
 
     public function getAll(string $status = '', string $search = ''): array {
-        $sql = "SELECT * FROM contents WHERE 1=1";
+        $sql    = "SELECT * FROM contents WHERE 1=1";
         $params = [];
 
         if ($status) {
@@ -22,6 +22,7 @@ class Content {
         }
 
         $sql .= " ORDER BY created_at DESC";
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll();
@@ -35,6 +36,7 @@ class Content {
 
     public function create(array $data): array {
         $slug = $this->generateSlug($data['title']);
+
         $stmt = $this->db->prepare(
             "INSERT INTO contents (title, slug, body, category, status, author)
              VALUES (:title, :slug, :body, :category, :status, :author)
@@ -54,8 +56,12 @@ class Content {
     public function update(int $id, array $data): ?array {
         $stmt = $this->db->prepare(
             "UPDATE contents
-             SET title = :title, slug = :slug, body = :body,
-                 category = :category, status = :status, author = :author
+             SET title    = :title,
+                 slug     = :slug,
+                 body     = :body,
+                 category = :category,
+                 status   = :status,
+                 author   = :author
              WHERE id = :id
              RETURNING *"
         );
@@ -85,15 +91,19 @@ class Content {
     public function getStats(): array {
         $stmt = $this->db->query(
             "SELECT
-                COUNT(*) as total,
-                COUNT(*) FILTER (WHERE status = 'published') as published,
-                COUNT(*) FILTER (WHERE status = 'draft') as draft,
-                COUNT(*) FILTER (WHERE status = 'archived') as archived,
-                COALESCE(SUM(views), 0) as total_views
+                COUNT(*)                                         AS total,
+                COUNT(*) FILTER (WHERE status = 'published')    AS published,
+                COUNT(*) FILTER (WHERE status = 'draft')        AS draft,
+                COUNT(*) FILTER (WHERE status = 'archived')     AS archived,
+                COALESCE(SUM(views), 0)                         AS total_views
              FROM contents"
         );
         return $stmt->fetch();
     }
+
+    // ----------------------------------------
+    // Private Helpers
+    // ----------------------------------------
 
     private function generateSlug(string $title, int $excludeId = 0): string {
         $slug = strtolower(trim($title));
@@ -101,15 +111,25 @@ class Content {
         $slug = preg_replace('/[\s-]+/', '-', $slug);
         $slug = trim($slug, '-');
 
-        // Check uniqueness
-        $base = $slug;
-        $i = 1;
-        while (true) {
+        // Fallback jika slug kosong setelah sanitasi
+        if (empty($slug)) {
+            $slug = 'konten-' . time();
+        }
+
+        $base  = $slug;
+        $i     = 1;
+        $limit = 100; // Cegah infinite loop
+
+        while ($i <= $limit) {
             $check = $this->db->prepare(
                 "SELECT id FROM contents WHERE slug = :slug AND id != :id"
             );
             $check->execute(['slug' => $slug, 'id' => $excludeId]);
-            if (!$check->fetch()) break;
+
+            if (!$check->fetch()) {
+                break; // Slug unik, keluar dari loop
+            }
+
             $slug = $base . '-' . $i++;
         }
 

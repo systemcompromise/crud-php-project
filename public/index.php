@@ -3,18 +3,36 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/Content.php';
 
+// ============================================
+// CORS — sesuaikan APP_URL dengan domain Anda
+// ============================================
+$allowedOrigin = getenv('APP_URL') ?: 'https://septaanugrahperkasa.com';
+header('Access-Control-Allow-Origin: ' . $allowedOrigin);
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');
+
+// Handle preflight request (OPTIONS)
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+
+// ============================================
+// Routing
+// ============================================
 $action = $_GET['action'] ?? '';
 $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
           strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 $method = $_SERVER['REQUEST_METHOD'];
 
+// Method override via query string (untuk PUT & DELETE dari browser)
 $methodOverride = $_GET['_method'] ?? '';
 if ($methodOverride) {
     $method = strtoupper($methodOverride);
 }
 
 if ($isAjax || in_array($action, ['create', 'update', 'delete', 'get', 'stats'])) {
-    header('Content-Type: application/json');
+    header('Content-Type: application/json; charset=utf-8');
     $content = new Content();
 
     try {
@@ -24,7 +42,11 @@ if ($isAjax || in_array($action, ['create', 'update', 'delete', 'get', 'stats'])
             case 'GET':
                 if ($id > 0) {
                     $item = $content->getById($id);
-                    if (!$item) { http_response_code(404); echo json_encode(['error' => 'Not found']); exit; }
+                    if (!$item) {
+                        http_response_code(404);
+                        echo json_encode(['error' => 'Konten tidak ditemukan']);
+                        exit;
+                    }
                     $content->incrementViews($id);
                     echo json_encode(['success' => true, 'data' => $item]);
                 } elseif ($action === 'stats') {
@@ -37,25 +59,49 @@ if ($isAjax || in_array($action, ['create', 'update', 'delete', 'get', 'stats'])
                 break;
 
             case 'POST':
-                $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+                $input  = json_decode(file_get_contents('php://input'), true) ?? $_POST;
                 $errors = validateInput($input);
-                if ($errors) { http_response_code(422); echo json_encode(['error' => implode(', ', $errors)]); exit; }
+                if ($errors) {
+                    http_response_code(422);
+                    echo json_encode(['error' => implode(', ', $errors)]);
+                    exit;
+                }
                 $item = $content->create($input);
                 http_response_code(201);
-                echo json_encode(['success' => true, 'data' => $item, 'message' => 'Konten berhasil dibuat']);
+                echo json_encode([
+                    'success' => true,
+                    'data'    => $item,
+                    'message' => 'Konten berhasil dibuat',
+                ]);
                 break;
 
             case 'PUT':
-                if (!$id) { http_response_code(400); echo json_encode(['error' => 'ID diperlukan']); exit; }
-                $input = json_decode(file_get_contents('php://input'), true);
+                if (!$id) {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'ID diperlukan']);
+                    exit;
+                }
+                $input  = json_decode(file_get_contents('php://input'), true);
                 $errors = validateInput($input);
-                if ($errors) { http_response_code(422); echo json_encode(['error' => implode(', ', $errors)]); exit; }
+                if ($errors) {
+                    http_response_code(422);
+                    echo json_encode(['error' => implode(', ', $errors)]);
+                    exit;
+                }
                 $item = $content->update($id, $input);
-                echo json_encode(['success' => true, 'data' => $item, 'message' => 'Konten berhasil diperbarui']);
+                echo json_encode([
+                    'success' => true,
+                    'data'    => $item,
+                    'message' => 'Konten berhasil diperbarui',
+                ]);
                 break;
 
             case 'DELETE':
-                if (!$id) { http_response_code(400); echo json_encode(['error' => 'ID diperlukan']); exit; }
+                if (!$id) {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'ID diperlukan']);
+                    exit;
+                }
                 $content->delete($id);
                 echo json_encode(['success' => true, 'message' => 'Konten berhasil dihapus']);
                 break;
@@ -65,18 +111,24 @@ if ($isAjax || in_array($action, ['create', 'update', 'delete', 'get', 'stats'])
                 echo json_encode(['error' => 'Method not allowed']);
         }
     } catch (Exception $e) {
+        // Log ke server, jangan expose detail ke client
+        error_log('[API Error] ' . $e->getMessage());
         http_response_code(500);
-        echo json_encode(['error' => 'Server error: ' . $e->getMessage()]);
+        echo json_encode(['error' => 'Terjadi kesalahan pada server. Silakan coba lagi.']);
     }
     exit;
 }
 
+// ============================================
+// Input Validation
+// ============================================
 function validateInput(?array $data): array {
     $errors = [];
-    if (empty($data['title'])) $errors[] = 'Judul wajib diisi';
-    if (strlen($data['title'] ?? '') > 255) $errors[] = 'Judul maksimal 255 karakter';
-    if (empty($data['body'])) $errors[] = 'Isi konten wajib diisi';
-    if (empty($data['author'])) $errors[] = 'Penulis wajib diisi';
+    if (empty($data['title']))                   $errors[] = 'Judul wajib diisi';
+    if (strlen($data['title'] ?? '') > 255)      $errors[] = 'Judul maksimal 255 karakter';
+    if (empty($data['body']))                    $errors[] = 'Isi konten wajib diisi';
+    if (empty($data['author']))                  $errors[] = 'Penulis wajib diisi';
+    if (strlen($data['author'] ?? '') > 100)     $errors[] = 'Nama penulis maksimal 100 karakter';
     return $errors;
 }
 ?>

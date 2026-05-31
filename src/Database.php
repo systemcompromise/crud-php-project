@@ -18,8 +18,14 @@ class Database {
                     ]
                 );
             } catch (PDOException $e) {
-                http_response_code(500);
-                die(json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]));
+                // Log detail error ke server — JANGAN expose ke client
+                error_log('[Database] Connection failed: ' . $e->getMessage());
+
+                http_response_code(503);
+                header('Content-Type: application/json');
+                die(json_encode([
+                    'error' => 'Service temporarily unavailable. Please try again later.'
+                ]));
             }
         }
         return self::$instance;

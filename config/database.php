@@ -1,7 +1,7 @@
 <?php
 // ============================================
 // Database Configuration
-// PostgreSQL - Railway PaaS
+// PostgreSQL — Railway PaaS
 // ============================================
 
 define('DB_HOST', getenv('DB_HOST') ?: 'localhost');

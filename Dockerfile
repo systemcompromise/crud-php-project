@@ -1,6 +1,7 @@
 # ============================================
-# Stage 1: Base PHP + Apache (IaaS Layer)
-# Platform: Railway (PaaS)
+# Dockerfile — ContentHub
+# Platform : Railway (PaaS)
+# PHP 8.2 + Apache + PostgreSQL Driver
 # ============================================
 FROM php:8.2-apache
 
@@ -27,34 +28,28 @@ RUN docker-php-ext-install \
 # Enable Apache modules
 RUN a2enmod rewrite headers ssl
 
-# Configure Apache
+# Copy Apache config
 COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
 
-# Configure PHP
+# Copy PHP config
 COPY docker/php.ini /usr/local/etc/php/conf.d/custom.ini
-
-# Configure OPcache for production
-RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/custom.ini && \
-    echo "opcache.memory_consumption=128" >> /usr/local/etc/php/conf.d/custom.ini && \
-    echo "opcache.max_accelerated_files=4000" >> /usr/local/etc/php/conf.d/custom.ini
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy application files
+# Copy semua file aplikasi
 COPY . .
 
-# Set proper permissions
+# Set permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html \
-    && chmod -R 777 /var/www/html/public
+    && chmod -R 755 /var/www/html/public
 
-# Railway uses dynamic PORT env variable
-# Apache listens on PORT env or defaults to 80
+# Entrypoint — handle Railway dynamic PORT
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# Railway akan override PORT env secara otomatis
 EXPOSE 80
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["apache2-foreground"]

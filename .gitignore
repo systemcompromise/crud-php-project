@@ -1,7 +1,29 @@
+# ============================================
+# .gitignore — Jangan commit file sensitif
+# ============================================
+
+# Environment & secrets
 .env
-.env.local
-.env.*.local
-vendor/
+.env.*
+!.env.example
+
+# Logs
 *.log
+/logs/
+
+# OS
 .DS_Store
-docker/data/
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker volume data
+/data/
+
+# PHP
+/vendor/
+composer.lock

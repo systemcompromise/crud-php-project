@@ -25,14 +25,16 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_contents_updated_at ON contents;
+
 CREATE TRIGGER update_contents_updated_at
     BEFORE UPDATE ON contents
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Index for performance
-CREATE INDEX IF NOT EXISTS idx_contents_status ON contents(status);
-CREATE INDEX IF NOT EXISTS idx_contents_slug ON contents(slug);
+CREATE INDEX IF NOT EXISTS idx_contents_status     ON contents(status);
+CREATE INDEX IF NOT EXISTS idx_contents_slug       ON contents(slug);
 CREATE INDEX IF NOT EXISTS idx_contents_created_at ON contents(created_at DESC);
 
 -- Seed data
@@ -60,4 +62,5 @@ INSERT INTO contents (title, slug, body, category, status, author) VALUES
     'Teknologi',
     'draft',
     'Developer'
-);
+)
+ON CONFLICT (slug) DO NOTHING;
