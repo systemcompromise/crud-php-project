@@ -1,0 +1,17 @@
+# railway.toml
+# Konfigurasi deployment Railway (PaaS)
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+numReplicas = 1
+sleepApplication = false
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+# Environment variables dikelola di Railway Dashboard:
+# DATABASE_URL  = (otomatis dari Railway PostgreSQL plugin)
+# APP_ENV       = production
+# APP_URL       = https://yourdomain.niagahoster.com

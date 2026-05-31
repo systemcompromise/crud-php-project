@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crud_php_app
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=crud_db
+      - DB_USER=postgres
+      - DB_PASS=secret
+      - APP_ENV=development
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - crud_network
+
+  db:
+    image: postgres:15-alpine
+    container_name: crud_postgres
+    environment:
+      POSTGRES_DB: crud_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - crud_network
+
+volumes:
+  postgres_data:
+
+networks:
+  crud_network:
+    driver: bridge

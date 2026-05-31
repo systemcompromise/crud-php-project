@@ -1,0 +1,7 @@
+.env
+.env.local
+.env.*.local
+vendor/
+*.log
+.DS_Store
+docker/data/
