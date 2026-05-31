@@ -25,12 +25,9 @@ RUN docker-php-ext-install \
     zip \
     opcache
 
-# Fix MPM conflict: php:8.2-apache uses mpm_prefork, disable others explicitly
-RUN a2dismod mpm_event mpm_worker 2>/dev/null || true \
-    && a2enmod mpm_prefork
-
-# Enable Apache modules
-RUN a2enmod rewrite headers ssl
+# Enable Apache modules (rewrite, headers, ssl)
+# MPM conflict diselesaikan di entrypoint.sh saat runtime
+RUN a2enmod rewrite headers
 
 # Copy Apache config
 COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
@@ -46,14 +43,12 @@ COPY . .
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html \
-    && chmod -R 755 /var/www/html/public
+    && chmod -R 755 /var/www/html
 
-# Entrypoint — handle Railway dynamic PORT
+# Copy entrypoint (handle MPM fix + dynamic PORT)
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Railway akan override PORT env secara otomatis
 EXPOSE 80
 
 ENTRYPOINT ["/entrypoint.sh"]
